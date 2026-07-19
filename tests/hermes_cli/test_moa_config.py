@@ -461,3 +461,58 @@ def test_validate_moa_payload_rejects_non_dict():
     assert validate_moa_payload(None)
     assert validate_moa_payload([1, 2])
     assert validate_moa_payload({"presets": {"p": "not-a-dict"}})
+
+
+# ── fanout default cadence (compat + default preset) ───────────────────
+
+def test_default_preset_uses_user_turn():
+    """New presets created via _default_preset() get user_turn as the
+    default fanout cadence (recommended for tool-heavy turns)."""
+    from hermes_cli.moa_config import _default_preset
+
+    assert _default_preset()["fanout"] == "user_turn"
+
+
+def test_legacy_preset_without_fanout_keeps_per_iteration():
+    """A preset saved before the fanout field existed (no explicit key)
+    normalizes to per_iteration for backward compatibility."""
+    cfg = normalize_moa_config(
+        {
+            "presets": {
+                "old": {
+                    "reference_models": [
+                        {"provider": "openrouter", "model": "deepseek/deepseek-v4-pro"}
+                    ],
+                    "aggregator": {
+                        "provider": "openrouter",
+                        "model": "anthropic/claude-opus-4.8",
+                    },
+                }
+            }
+        }
+    )
+
+    assert cfg["presets"]["old"]["fanout"] == "per_iteration"
+
+
+def test_explicit_user_turn_preserved_through_normalize():
+    """An explicit fanout: user_turn in the raw config survives normalization."""
+    cfg = normalize_moa_config(
+        {
+            "presets": {
+                "fast": {
+                    "reference_models": [
+                        {"provider": "openrouter", "model": "deepseek/deepseek-v4-pro"}
+                    ],
+                    "aggregator": {
+                        "provider": "openrouter",
+                        "model": "anthropic/claude-opus-4.8",
+                    },
+                    "fanout": "user_turn",
+                }
+            }
+        }
+    )
+
+    assert cfg["presets"]["fast"]["fanout"] == "user_turn"
+

@@ -57,7 +57,7 @@ For each main model call when provider `moa` is selected, Hermes:
 4. calls the configured aggregator with the normal Hermes tool schema;
 5. treats the aggregator response as the real model response;
 6. if the aggregator calls tools, Hermes executes those tools normally;
-7. on the next model iteration, the same MoA process runs again over the updated conversation, including tool results.
+7. on subsequent tool iterations, the same MoA process runs again over the updated conversation. The `fanout` field controls whether references re-run every iteration (`per_iteration`, legacy default) or once per user turn (`user_turn`, recommended for tool-heavy turns).
 
 Because MoA is selected through the normal model system, it composes automatically with `/goal`, gateway sessions, TUI sessions, and Desktop chat.
 
@@ -191,7 +191,7 @@ Both internal call types cache normally:
 - **Reference models** receive a trimmed, deterministic view of the conversation (system prompt and tool transcript stripped — see the loop above). Because that view is a stable function of the stable history, a reference model's prompt prefix repeats across iterations and caches normally. References are short advisory calls with no tools.
 - **The aggregator** is the acting model. The reference outputs are appended to the *end* of the latest user turn as private guidance. Because that text sits at the tail — below the entire stable prefix (system prompt + prior history) — it does not invalidate any cached prefix: the aggregator gets a cache hit on everything above the injection, and only the freshly appended tail is new. That is exactly how every normal turn behaves, where each new user message is also uncached tail tokens.
 
-So MoA does not sacrifice prompt caching on either call type. Its only real cost is the extra reference calls per iteration — you pay for multiple model perspectives, not for broken caches. The long-lived conversation prefix shared with the rest of Hermes is fully intact.
+So MoA does not sacrifice prompt caching on either call type. With `per_iteration` (legacy default), MoA pays for extra reference calls every tool iteration. Switch to `fanout: user_turn` to amortize references across the user turn and reduce both cost and latency for tool-heavy conversations. The long-lived conversation prefix shared with the rest of Hermes is fully intact.
 
 ## Notes
 

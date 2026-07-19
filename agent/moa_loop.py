@@ -952,14 +952,13 @@ class MoAChatCompletions:
         reference_outputs: list[tuple[str, str, Any]] = []
         ref_messages = _reference_messages(messages)
 
-        # Fan-out cadence. "user_turn" (default): advisors run ONCE per user
-        # turn; the aggregator gets their upfront plan-level advice, then acts
-        # alone for the rest of the tool loop. Tool iterations 2+ reuse the
-        # cached advice (hashed by prefix up to the last real user message) so
-        # the signature is stable across mid-turn context growth.
+        # Fan-out cadence. "user_turn": advisors run ONCE per user turn;
+        # the aggregator gets their upfront plan-level advice, then acts
+        # alone for the rest of the tool loop. Tool iterations 2+ reuse
+        # cached advice (hashed by prefix up to the last real user message).
         # "per_iteration" is the legacy cadence that re-runs the fan-out on
         # every tool iteration so advice tracks live task state.
-        fanout_mode = str(preset.get("fanout") or "user_turn").strip().lower()
+        fanout_mode = str(preset.get("fanout") or "per_iteration").strip().lower()
         sig_messages = ref_messages
         if fanout_mode == "user_turn":
             # Find the last REAL user message. The advisory view appends a
